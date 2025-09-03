@@ -9,12 +9,10 @@ env:
 phases:
   install:
     runtime-versions:
-      java: corretto17
+      java: corretto11
     commands:
     - cp ./settings.xml /root/.m2/settings.xml
-    - export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain ArtifactDomain --domain-owner ID --region REGION --query authorizationToken --output text`
-  pre_build:
-    commands:
+    - export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain hkhinfotech --domain-owner 637423544639 --region us-east-1 --query authorizationToken --output text`
       - apt-get update
       - apt-get install -y jq checkstyle
       - wget https://dlcdn.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.tar.gz
@@ -27,8 +25,11 @@ phases:
     commands:
       - mvn test
       - mvn checkstyle:checkstyle
+      - echo "Installing JDK11 as its a dependency for sonarqube code analysis"
+      - apt-get install -y openjdk-11-jdk
+      - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
       - mvn sonar:sonar -Dsonar.login=$LOGIN -Dsonar.host.url=$HOST -Dsonar.projectKey=$Project -Dsonar.organization=$Organization -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ -Dsonar.junit.reportsPath=target/surefire-reports/ -Dsonar.jacoco.reportsPath=target/jacoco.exec -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml
       - sleep 5
       - curl https://sonarcloud.io/api/qualitygates/project_status?projectKey=$Project >result.json
-      - cat result.json
-      - if [ $(jq -r '.projectStatus.status' result.json) = ERROR ] ; then $CODEBUILD_BUILD_SUCCEEDING -eq 0 ;fi
+      - cat result.jsonif [ $(jq -r '.projectStatus.status' result.json) = ERROR ] ; then $CODEBUILD_BUILD_SUCCEEDING -eq 0 ;fi
+      - 
